@@ -1,17 +1,39 @@
 import torch
 from tqdm import tqdm, trange
-
+from config import CONFIG
+from utils import load_dataset
+from torch.nn import CrossEntropyLoss
+from models.train_model import _load_checkpoint
+from VIT.VIT import MyViT
 
 
 def evaluate():
+    _, _, test_loader = load_dataset(dataset_name="MNIST", batch_size=CONFIG.VIT.BATCH_SIZE)
+    model = load_model()
+    evaluate_model(model, test_loader)
+    print("ansqnl")
 
+
+def load_model():
+    model_weights = load_model_weights(exp_name=CONFIG.VIT.NAME)
+    model = MyViT((1, 28, 28), n_patches=7, n_blocks=2, hidden_d=8, n_heads=2, out_d=10).to(CONFIG.DEVICE)
+    model.load_state_dict(model_weights)
+    return model
+
+def load_model_weights(exp_name:str):
+    with torch.no_grad():
+        model, optimizer, loss = _load_checkpoint(exp_name=CONFIG.VIT.NAME)
+        return model
+
+def evaluate_model(model, test_loader):
     # Test loop
+    criterion = CrossEntropyLoss()
     with torch.no_grad():
         correct, total = 0, 0
         test_loss = 0.0
         for batch in tqdm(test_loader, desc="Testing"):
             x, y = batch
-            x, y = x.to(device), y.to(device)
+            x, y = x.to(CONFIG.DEVICE), y.to(CONFIG.DEVICE)
             y_hat = model(x)
             loss = criterion(y_hat, y)
             test_loss += loss.detach().cpu().item() / len(test_loader)

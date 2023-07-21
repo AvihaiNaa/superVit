@@ -10,14 +10,12 @@ cross_entropy_loss = CrossEntropyLoss()
 
 def train(train_loader, val_loader, api=None):
     model = MyViT((1, 28, 28), n_patches=7, n_blocks=2, hidden_d=8, n_heads=2, out_d=10).to(CONFIG.DEVICE)
-    N_EPOCHS = 5
-    LR = 0.005
 
     # Training loop
-    optimizer = Adam(model.parameters(), lr=LR)
+    optimizer = Adam(model.parameters(), lr=CONFIG.VIT.LR)
     criterion = CrossEntropyLoss()
     min_loss = np.inf
-    for epoch in trange(N_EPOCHS, desc="Training"):
+    for epoch in trange(CONFIG.VIT.N_EPOCHS, desc="Training"):
         train_loss = train_epoch(train_loader, device=CONFIG.DEVICE, optimizer=optimizer, model=model, api=api)
         val_loss = validation_epoch(train_loader, device=CONFIG.DEVICE, model=model, api=api)
         if api is not None:
@@ -26,7 +24,7 @@ def train(train_loader, val_loader, api=None):
             min_loss = val_loss
             _save_checkpoint(model, optimizer, val_loss, exp_name=CONFIG.VIT.NAME)
 
-        print(f"Epoch {epoch + 1}/{N_EPOCHS} loss: {train_loss:.2f}")
+        print(f"Epoch {epoch + 1}/{CONFIG.VIT.N_EPOCHS} loss: {train_loss:.2f}")
     return model
 
 

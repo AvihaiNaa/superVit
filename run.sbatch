@@ -54,6 +54,6 @@ python -m torch.utils.collect_env
 
 cd  /home/avihaina/jupyter_project/superVit/
 
-python -m train.py --n_epochs=200
+python  train.py --n_epochs=200
 
-python -m eval.py 
+python evaluate.py 

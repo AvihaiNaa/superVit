@@ -25,8 +25,8 @@
 
 ##For issues CUDA\gcc\C++V
 scl enable devtoolset-9 bash
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/avihaina/.conda/envs/torch_env/lib/
-export LD_LIBRARY_PATH=/home/ronsha/.conda/envs/torch_env/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/avihaina/.conda/envs/torch_env/lib/
+# export LD_LIBRARY_PATH=/home/ronsha/.conda/envs/torch_env/lib:$LD_LIBRARY_PATH
 
 export PATH=/opt/rh/devtoolset-9/root/usr/bin/:$PATH
 

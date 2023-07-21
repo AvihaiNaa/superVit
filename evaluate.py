@@ -5,10 +5,20 @@ from utils import load_dataset
 from torch.nn import CrossEntropyLoss
 from models.train_model import _load_checkpoint
 from VIT.VIT import MyViT
+import argparse
+
+
+
+parser = argparse.ArgumentParser(description='Process args')
+parser.add_argument('--ds_name', type=str, default=CONFIG.VIT.DS_NAME,
+                    help="Dataset name")
+
+args = parser.parse_args()
+CONFIG.VIT.DS_NAME = args.ds_name
 
 
 def evaluate():
-    _, _, test_loader = load_dataset(dataset_name="MNIST", batch_size=CONFIG.VIT.BATCH_SIZE)
+    _, _, test_loader = load_dataset(dataset_name=CONFIG.VIT.DS_NAME, batch_size=CONFIG.VIT.BATCH_SIZE)
     model = load_model()
     evaluate_model(model, test_loader)
     print("ansqnl")

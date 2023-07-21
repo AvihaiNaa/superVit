@@ -6,6 +6,8 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description='Process args')
+parser.add_argument('--ds_name', type=str, default=CONFIG.VIT.DS_NAME,
+                    help="Dataset name")
 parser.add_argument('--n_epochs', type=int, default=CONFIG.VIT.N_EPOCHS,
                     help="number of epochs")
 parser.add_argument('--lr', type=int, default=CONFIG.VIT.LR,
@@ -18,9 +20,10 @@ args = parser.parse_args()
 CONFIG.VIT.N_EPOCHS = args.n_epochs
 CONFIG.VIT.LR = args.lr
 CONFIG.VIT.BATCH_SIZE = args.n_batches
+CONFIG.VIT.DS_NAME = args.ds_name
 
 def train_vit():
-    train_loader, validation_loader, test_loader = load_dataset(dataset_name="MNIST", batch_size=CONFIG.VIT.BATCH_SIZE)
+    train_loader, validation_loader, test_loader = load_dataset(dataset_name=CONFIG.VIT.DS_NAME, batch_size=CONFIG.VIT.BATCH_SIZE)
     model = train_model(train_loader, validation_loader)
     print("ansqnl")
 

@@ -1,16 +1,21 @@
 import torch
 from torchvision.transforms import ToTensor
 from torch.utils.data import DataLoader
+from config import CONFIG
 
 
 
-def load_dataset(dataset_name="MNIST", batch_size=128):
+def load_dataset(dataset_name=CONFIG.VIT.DS_NAME, batch_size=128):
     if dataset_name == "MNIST":
         from torchvision.datasets.mnist import MNIST
         transform = ToTensor()
         train_set = MNIST(root='./../datasets', train=True, download=True, transform=transform)
         test_set = MNIST(root='./../datasets', train=False, download=True, transform=transform)
-
+    elif dataset_name == "CIFAR10":
+        from torchvision.datasets.cifar import CIFAR10
+        transform = ToTensor()
+        train_set = CIFAR10(root='./../datasets', train=True, download=True, transform=transform)
+        test_set = CIFAR10(root='./../datasets', train=False, download=True, transform=transform)
     train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size)
     test_loader = DataLoader(test_set, shuffle=False, batch_size=batch_size)
     train_loader, validation_loader = get_train_and_validation_loaders(train_loader,

@@ -5,7 +5,7 @@ from config import CONFIG
 
 
 
-def load_dataset(dataset_name=CONFIG.VIT.DS_NAME, batch_size=128):
+def load_dataset(dataset_name=CONFIG.VIT.DS_NAME, batch_size=CONFIG.VIT.BATCH_SIZE):
     if dataset_name == "MNIST":
         from torchvision.datasets.mnist import MNIST
         transform = ToTensor()

@@ -22,7 +22,7 @@ def train(train_loader, val_loader, api=None):
             raise NotImplementedError
         if val_loss < min_loss:
             min_loss = val_loss
-            _save_checkpoint(model, optimizer, val_loss, exp_name=CONFIG.VIT.NAME +"_"+CONFIG.VIT.DS_NAME)
+            _save_checkpoint(model, optimizer, val_loss, exp_name=CONFIG.VIT.NAME +"_"+CONFIG.VIT.DS_NAME+"_"+CONFIG.VIT.TYPE)
 
         print(f"Epoch {epoch + 1}/{CONFIG.VIT.N_EPOCHS} loss: {train_loss:.2f}")
     return model

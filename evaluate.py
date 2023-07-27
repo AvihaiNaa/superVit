@@ -32,7 +32,7 @@ def load_model():
 
 def load_model_weights(exp_name:str):
     with torch.no_grad():
-        model, optimizer, loss = _load_checkpoint(exp_name=CONFIG.VIT.NAME +"_"+CONFIG.VIT.DS_NAME)
+        model, optimizer, loss = _load_checkpoint(exp_name=CONFIG.VIT.NAME +"_"+CONFIG.VIT.DS_NAME+"_"+CONFIG.VIT.TYPE)
         return model
 
 def evaluate_model(model, test_loader):

@@ -1,6 +1,12 @@
+import math
+
+import cv2
 import torch
 import torch.nn as nn
 import numpy as np
+
+from config import CONFIG
+
 
 class MyViT(nn.Module):
     def __init__(self, chw, n_patches=7, n_blocks=2, hidden_d=8, n_heads=2, out_d=10):
@@ -17,10 +23,14 @@ class MyViT(nn.Module):
         # Input and patches sizes
         assert chw[1] % n_patches == 0, "Input shape not entirely divisible by number of patches"
         assert chw[2] % n_patches == 0, "Input shape not entirely divisible by number of patches"
-        self.patch_size = (chw[1] / n_patches, chw[2] / n_patches)
 
         # 1) Linear mapper
-        self.input_d = int(chw[0] * self.patch_size[0] * self.patch_size[1])
+        if CONFIG.VIT.TYPE == "PATCHES":
+            self.patch_size = (chw[1] / n_patches, chw[2] / n_patches)
+            self.input_d = int(chw[0] * self.patch_size[0] * self.patch_size[1])
+        elif CONFIG.VIT.TYPE == "SUPERPIXELS":
+            self.input_d = 1
+
         self.linear_mapper = nn.Linear(self.input_d, self.hidden_d)
         
         # 2) Learnable classification token
@@ -41,8 +51,12 @@ class MyViT(nn.Module):
     def forward(self, images):
         # Dividing images into patches
         n, c, h, w = images.shape
-        patches = patchify(images, self.n_patches).to(self.positional_embeddings.device)
-        
+
+        if CONFIG.VIT.TYPE == "PATCHES":
+            patches = patchify(images, self.n_patches).to(self.positional_embeddings.device)
+        elif CONFIG.VIT.TYPE == "SUPERPIXELS":
+            patches = apply_superpixels(images, self.n_patches).to(self.positional_embeddings.device)
+
         # Running linear layer tokenization
         # Map the vector corresponding to each patch to the hidden size dimension
         tokens = self.linear_mapper(patches)
@@ -136,6 +150,79 @@ def patchify(images, n_patches):
                 patch = image[:, i * patch_size: (i + 1) * patch_size, j * patch_size: (j + 1) * patch_size]
                 patches[idx, i * n_patches + j] = patch.flatten()
     return patches
+
+
+def get_superpixels(image, sp_size):
+    # Convert the tensor to a numpy array
+    image = image.numpy()
+    # Transpose the dimensions to change the shape from (c, h, w) to (h, w, c)
+    image = np.transpose(image, (1, 2, 0))
+
+    # # Convert the image to RGB color space
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # # Apply SLIC algorithm to get superpixel segments
+    # segments = slic(rgb_image, n_segments=sp_size, compactness=10)
+
+    # Create the superpixel object
+    superpixel = cv2.ximgproc.createSuperpixelLSC(rgb_image, region_size=sp_size, ratio=0.02)
+
+    # Iterate to get the desired number of superpixels
+    iterations = 10
+    superpixel.iterate(iterations)
+
+    # Get the labels of each pixel indicating which superpixel it belongs to
+    labels = superpixel.getLabels()
+
+    # Create a mask to visualize the superpixels
+    mask = labels.reshape(image.shape[0], image.shape[1])
+
+    return mask
+
+
+def get_average_pixel_values(image, superpixel_mask, n_superpixels):
+    c, _, _ = image.shape
+    # Create an array to store the average pixel values for each superpixel
+    average_values = np.zeros((n_superpixels, c))
+
+    # Flatten the mask to make it easier to work with
+    flat_mask = superpixel_mask.flatten()
+
+    # Flatten the image to compute the average pixel values efficiently
+    flat_image = image.reshape(-1, c)
+
+    for i in range(n_superpixels):
+        # Get the indices of the current superpixel in the flattened mask
+        indices = np.where(flat_mask == i)
+
+        # Extract the pixel values of the current superpixel from the flattened image
+        pixels = flat_image[indices]
+
+        if pixels.numel() != 0:
+            avg_pixel = np.mean(pixels.numpy(), axis=0)
+        else:
+            avg_pixel = 0
+
+        # Calculate the average pixel values for each channel (Red, Green, Blue)
+        average_values[i] = avg_pixel
+
+    return average_values
+
+
+def apply_superpixels(images, n_superpixels):
+    n, c, h, w = images.shape
+
+    assert h == w, "Superpixels method is implemented for square images only"
+
+    superpixels = torch.zeros(n, n_superpixels ** 2, c)
+    sp_size = int(math.sqrt((h * w) / n_superpixels**2))
+
+    for idx, image in enumerate(images):
+        superpixel_mask = get_superpixels(image, sp_size)
+        avg_superpixels = get_average_pixel_values(image, superpixel_mask, n_superpixels**2)
+        superpixels[idx] = torch.tensor(avg_superpixels)
+    return superpixels
+
 
 def get_positional_embeddings(sequence_length, d):
     result = torch.ones(sequence_length, d)

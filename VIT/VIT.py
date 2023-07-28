@@ -158,17 +158,11 @@ def get_superpixels(image, sp_size):
     # Transpose the dimensions to change the shape from (c, h, w) to (h, w, c)
     image = np.transpose(image, (1, 2, 0))
 
-    # # Convert the image to RGB color space
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # # Apply SLIC algorithm to get superpixel segments
-    # segments = slic(rgb_image, n_segments=sp_size, compactness=10)
-
     # Create the superpixel object
-    superpixel = cv2.ximgproc.createSuperpixelLSC(rgb_image, region_size=sp_size, ratio=0.02)
+    superpixel = cv2.ximgproc.createSuperpixelSLIC(image, region_size=sp_size)
 
     # Iterate to get the desired number of superpixels
-    iterations = 10
+    iterations = 5
     superpixel.iterate(iterations)
 
     # Get the labels of each pixel indicating which superpixel it belongs to
@@ -176,37 +170,31 @@ def get_superpixels(image, sp_size):
 
     # Create a mask to visualize the superpixels
     mask = labels.reshape(image.shape[0], image.shape[1])
-
     return mask
 
 
 def get_average_pixel_values(image, superpixel_mask, n_superpixels):
     c, _, _ = image.shape
-    # Create an array to store the average pixel values for each superpixel
-    average_values = np.zeros((n_superpixels, c))
-
-    # Flatten the mask to make it easier to work with
     flat_mask = superpixel_mask.flatten()
+    flat_image = image.reshape(-1, c).numpy()
 
-    # Flatten the image to compute the average pixel values efficiently
-    flat_image = image.reshape(-1, c)
+    # Create an array to store the counts of pixels for each superpixel
+    pixel_counts = np.bincount(flat_mask, minlength=n_superpixels)
 
-    for i in range(n_superpixels):
-        # Get the indices of the current superpixel in the flattened mask
-        indices = np.where(flat_mask == i)
+    # Create an array to store the sums of pixel values for each superpixel
+    pixel_sums = np.zeros((n_superpixels, ), dtype=flat_image.dtype)
 
-        # Extract the pixel values of the current superpixel from the flattened image
-        pixels = flat_image[indices]
+    # Accumulate the pixel values for each superpixel
+    np.add.at(pixel_sums, flat_mask[:, None], flat_image)
 
-        if pixels.numel() != 0:
-            avg_pixel = np.mean(pixels.numpy(), axis=0)
-        else:
-            avg_pixel = 0
+    # Calculate the mean pixel values for each superpixel
+    average_values = np.divide(pixel_sums, pixel_counts, out=np.zeros_like(pixel_sums), where=(pixel_counts != 0))
 
-        # Calculate the average pixel values for each channel (Red, Green, Blue)
-        average_values[i] = avg_pixel
+    # Handle cases where a superpixel has no pixels by copying the average values from the previous superpixel
+    mask_empty_superpixels = (pixel_counts == 0)
+    average_values[mask_empty_superpixels] = np.roll(average_values, 1, axis=0)[mask_empty_superpixels]
 
-    return average_values
+    return average_values[:, None]
 
 
 def apply_superpixels(images, n_superpixels):
